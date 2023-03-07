@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<!-- saved from url=(0030)https://www.hzgome.cn/298.html -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）</title>
+<meta name="description" content="本文原题《ORACLE数据库服务器IO高的分析方案和案例探讨》">
+<meta name="keywords" content="Oracle 数据库服务器 IO 高">
+<link rel="apple-touch-icon" href="https://www.hzgome.cn/wp-content/themes/JieStyle-Two-master/images/favicon.ico">
+<link rel="icon" href="https://www.hzgome.cn/wp-content/themes/JieStyle-Two-master/images/favicon.ico" type="image/x-icon">
+<!--
+<link rel="apple-touch-icon" sizes="152x152" href="https://www.hzgome.cn/wp-content/themes/JieStyle-Two-master/images/icon_152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="https://www.hzgome.cn/wp-content/themes/JieStyle-Two-master/images/icon_167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://www.hzgome.cn/wp-content/themes/JieStyle-Two-master/images/icon_180.png">
+-->
+	
+<link rel="stylesheet" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/bootstrap.min.css">
+<link rel="stylesheet" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/fontawesome.min.css">
+<link rel="stylesheet" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/style.css">
+<link rel="pingback" href="https://www.hzgome.cn/xmlrpc.php">
+<meta name="robots" content="max-image-preview:large">
+<link rel="stylesheet" id="wp-block-library-css" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/style.min.css" type="text/css" media="all">
+<style id="global-styles-inline-css" type="text/css">
+body{--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--duotone--dark-grayscale: url('#wp-duotone-dark-grayscale');--wp--preset--duotone--grayscale: url('#wp-duotone-grayscale');--wp--preset--duotone--purple-yellow: url('#wp-duotone-purple-yellow');--wp--preset--duotone--blue-red: url('#wp-duotone-blue-red');--wp--preset--duotone--midnight: url('#wp-duotone-midnight');--wp--preset--duotone--magenta-yellow: url('#wp-duotone-magenta-yellow');--wp--preset--duotone--purple-green: url('#wp-duotone-purple-green');--wp--preset--duotone--blue-orange: url('#wp-duotone-blue-orange');--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+</style>
+<link rel="stylesheet" id="pure-highlightjs-style-css" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/atelier-heath-light.css" type="text/css" media="all">
+<link rel="stylesheet" id="pure-highlightjs-css-css" href="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/pure-highlight.css" type="text/css" media="all">
+<style type="text/css">
+a{color:#3a6796}
+a:hover{color:#3a60b9!important}
+#header{background-color:#3a6796}
+.widget .widget-title::after{background-color:#3a6796}
+.uptop{border-left-color:#3a6796}
+#titleBar .toggle:before{background:#3a6796}
+</style>
+<style>.crx_bdwk_down_wrap {
+    top: 70%;
+    left: 0;
+    position: fixed;
+    z-index: 99999999;
+    color: #fff;
+    user-select: none;
+}
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_loading {
+        background-color: #666;
+        cursor: wait;
+        width: 126px;
+        text-align: center;
+        padding: 16px 0;
+    }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_loading p {
+            font-size: 14px;
+        }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_loading small {
+            font-size: 10px;
+        }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_btn {
+        width: 126px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        background-color: #dd5a57;
+        position: relative;
+    }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types {
+        display: flex;
+        text-align: center;
+        align-items: center;
+        background-color: #666;
+        font-size: 12px;
+    }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types div {
+            position: relative;
+        }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types div:after {
+                content: ' ';
+                height: 12px;
+                width: 1px;
+                background-color: #eee;
+                position: absolute;
+                top: 10px;
+                right: 0;
+                transform: scaleX(0.5);
+            }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types div:last-child:after {
+                    display: none;
+                }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types_check {
+            flex: 1;
+            color: #dd5a57;
+            padding: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+    .crx_bdwk_down_wrap .crx_bdwk_down_types_uncheck {
+            flex: 1;
+            padding: 8px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: lighter;
+        }
+</style></head>
+
+<body>
+<header id="header">
+    <div class="avatar"><a href="https://www.hzgome.cn/" title="初见博客" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);"><img src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/20210617140123.png" alt="初见博客" class="img-circle" width="50%"></a></div>
+    <h1 id="name">初见博客</h1>
+    <div class="sns">
+                                            </div>
+    <div class="nav">
+        <ul><li><a href="https://www.hzgome.cn/" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">首页</a></li>
+<li><a href="https://www.hzgome.cn/it-knowledge" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">IT知识</a>
+<ul class="sub-menu">
+	<li><a href="https://www.hzgome.cn/it-knowledge/docker" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">docker</a></li>
+</ul>
+</li>
+<li><a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle_error" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">oracle报错</a></li>
+<li><a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle%e8%b0%83%e4%bc%98" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">oracle调优</a></li>
+<li><a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle_sql" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">oracle_SQL</a></li>
+<li><a href="https://www.hzgome.cn/oracle_basic-knowledge/oracledata" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">oracle存储</a></li>
+<li><a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle_user" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);">oracle用户</a></li>
+</ul>    </div>
+    </header>
+<div id="main">
+	
+    <article class="col-md-8 col-md-offset-2 view clearfix">
+		<h2><a href="https://www.hzgome.cn/" class="gray">首页</a>  &gt;  <a href="https://www.hzgome.cn/oracle_basic-knowledge">oracle知识</a>  &gt;  <a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle%e8%b0%83%e4%bc%98">oracle调优</a>  &gt;  </h2>	
+        <h1 class="view-title">Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）</h1>
+        <div class="view-meta">
+            <span>作者: 初见博客</span>
+            <span>分类: <a href="https://www.hzgome.cn/oracle_basic-knowledge/oracle%e8%b0%83%e4%bc%98" rel="category tag">oracle调优</a></span>
+            <span>发布时间: 2022-09-20 17:06</span>
+            <span></span>
+        </div>
+        <div class="view-content">
+<p>本文原题《ORACLE数据库服务器IO高的分析方案和案例探讨》</p>
+<p>&nbsp;</p>
+<p>目录：</p>
+<p>慧眼识珠——服务器磁盘这么繁忙，到底是谁干的？</p>
+<p>谨记于心——ORACLE DBA判断IO有性能问题的标准</p>
+<p>带刀侍卫——处理IO问题必须掌握的一个ORACLE工具</p>
+<p>说难不难——用几句话来说清ORACLE数据库</p>
+<p>活得明白——一个例子说明ORACLE的工作过程</p>
+<p>牢记于心——一幅图来总结ORACLE的IO特点</p>
+<p>怎么破——什么是无效IO以及解决方法</p>
+<p>作者：黄远邦（小y），就职于北京中亦安图科技股份有限公司，任数据库团队技术总监。长期活跃于国内多家银行总行生产数据中心,提供Oracle第三方服务，解决过无数疑难问题，在业内具有极佳的口碑。</p>
+<p>&nbsp;</p>
+<p>前言</p>
+<p>&nbsp;</p>
+<p>远邦在为数据中心提供Oracle第三方服务的过程中接触过很多系统/存储管理员，发现很多SA对Oracle数据库缺乏足够的了解，导致在处理综合问题时容易各说各话，因此有了写一个系列文章的想法，本意是尽可能用大白话为大家普及一些常见问题所需的理论，辅以几个实际的案例分析，希望对大家以后的工作有所帮助。</p>
+<p>言归正传，在部署了ORACLE数据库的服务器上，我们大家或多或少的遇到过下列情况：</p>
+<p>1.&nbsp;业务系统运行缓慢，作为系统管理员需要检查包括IO在内的系统资源，这时系统管理员、存储管理员可能得到DBA（数据库管理员）的反馈说，IO的响应时间很慢，达到了30毫秒以上，要求解决。但存储管理员检查又不存在热点盘的情况，系统的IO量就是很大，除了使用更多的RAID组来重新分布数据、更换为更高端的存储外，似乎没有太好的办法；</p>
+<p>2. 我们可能通过iostat和sar -d命令观察到磁盘的busy很高、每秒的IOPS很高、每秒的IO读写量很大、HBA卡的流量很高等危险的现象；</p>
+<p>3. IO响应时间长，到底是导致业务慢的原因还是结果？</p>
+<p>4. IOPS很高、IO读写量很大，到底是原因还是结果？</p>
+<p>5. 除了硬件的扩容或升级，难道没有别的解决方法么？</p>
+<p>6. 如何识别ORACLE服务器上的IO来源，如何判断这些IO是否是有效IO,怎么消除无效IO？</p>
+<p>7. 作为系统管理员和存储管理员需要掌握哪些数据库简单技能才不会在出现IO问题时处于被动的局面？</p>
+<p>8. ORACLE DBA评判IO是否有性能问题的标准是什么？</p>
+<p>9. ORACLE数据库的IO有什么特点？哪些IO是比较关键，是必须保障性能的？</p>
+<p>我们将通过理论和实际案例穿插介绍的方式为大家进行讲解和分享，希望对大家有所启发。</p>
+<p>本文是系列的第一篇。需要说明的是，由于篇幅有限，会暂时省略掉部分在过程中实际发生但与本主题不是那么密切的内容，如UNDO、checkpoint等内容。</p>
+<p>同时考虑到AIX专家俱乐部可能更多的是系统/存储管理员，因此会有部分科普的内容，水平较好的ORACLE DBA可以自行跳到案例探讨环节。对于没有真正做过DBA的同学来说，ORACLE可能稍微有点难，但只要静下心来花点时间去主动了解了，那就不难了。</p>
+<p>慧眼识珠——服务器磁盘这么繁忙，到底是谁干的？<br>
+出一个问题时段的AWR报告，将awr报告对应的html文件下载到PC终端<br>
+用IE等浏览器打开，查找”SQL ordered by Reads”部分，如下图所示：</p>
+<p><img class="alignnone size-full wp-image-299" title="ef8000d0b716e57bb7797544ba21dcc4" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/ef8000d0b716e57bb7797544ba21dcc4.png" alt="ef8000d0b716e57bb7797544ba21dcc4" width="931" height="370" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/ef8000d0b716e57bb7797544ba21dcc4.png 931w, https://www.hzgome.cn/wp-content/uploads/2022/09/ef8000d0b716e57bb7797544ba21dcc4-300x119.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/ef8000d0b716e57bb7797544ba21dcc4-150x60.png 150w, https://www.hzgome.cn/wp-content/uploads/2022/09/ef8000d0b716e57bb7797544ba21dcc4-768x305.png 768w" sizes="(max-width: 931px) 100vw, 931px"></p>
+<p>可以看到：</p>
+<p>1) 排名第一的SQL语句，占了整个数据库服务器IO的99.79%</p>
+<p>2) 一共执行了8次，每次执行发生的IO是2，129,053个BLOCK，一个BLOCK是8K，即每次执行该SQL，将发生2，129,053*8K=16.24G</p>
+<p>知识点：</p>
+<p>BLOCK是ORACLE数据文件的最小分配单元，类似LV的PP,数据就存储在BLOCK中，一个BLOCK可以存储几十到几百条不等的用户表的数据。</p>
+<p>是不是很简单？</p>
+<p>当然，大家也可以用操作系统的命令看到进程级的IO分布情况。</p>
+<p>例如Linux环境下通过pidstat -d 可以监控哪个进程IO消耗较高。</p>
+<p>当然，采用操作系统方式查看进程级别的IO分布的方式的缺点是很显然的，更可怕的是，这表明你依然在把数据库当黑盒子来看待，进程具体在做什么？为什么IO那么高?</p>
+<p>我们需要继续往前一步。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-300" title="8bb9df54e34cb06d923e47dd36403fbe" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/8bb9df54e34cb06d923e47dd36403fbe.png" alt="8bb9df54e34cb06d923e47dd36403fbe" width="624" height="461" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/8bb9df54e34cb06d923e47dd36403fbe.png 624w, https://www.hzgome.cn/wp-content/uploads/2022/09/8bb9df54e34cb06d923e47dd36403fbe-300x222.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/8bb9df54e34cb06d923e47dd36403fbe-150x111.png 150w" sizes="(max-width: 624px) 100vw, 624px"></p>
+<p>谨记于心——ORACLE DBA判断IO有性能问题的标准<br>
+知识点：<br>
+一般来说，如果单个IO的响应时间在20毫秒以内，是可以接受的，较好的性能应该在10个毫秒以下，越低越好。超过20毫秒的单个IO响应时间，则可认为性能不佳，需要做调优。需要说明的是，对于IO次数只有个位数的文件，IO超过20毫秒，也是可以接受的，因为在存储层面不容易被cache。</p>
+<p>通过OS和数据库AWR报告两个方式均可以判断IO是否有问题，建议以OS方式为准。</p>
+<p>1.&nbsp;操作系统方式</p>
+<p>sar –d 2 10的输出中，avwait和avserv两列之和即为IO的响应时间（AIX环境），单位为毫秒。LINUX环境下有区别，IO的响应时间为AVWAIT列。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-301" title="8635a10bdeecbbd81ffd23dbe76adc7a" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/8635a10bdeecbbd81ffd23dbe76adc7a.png" alt="8635a10bdeecbbd81ffd23dbe76adc7a" width="564" height="455" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/8635a10bdeecbbd81ffd23dbe76adc7a.png 564w, https://www.hzgome.cn/wp-content/uploads/2022/09/8635a10bdeecbbd81ffd23dbe76adc7a-300x242.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/8635a10bdeecbbd81ffd23dbe76adc7a-150x121.png 150w" sizes="(max-width: 564px) 100vw, 564px"></p>
+<p>可以看到：</p>
+<p>hdisk4上单个IO的响应时间达到4000多毫秒和2000多毫秒，远远大于20毫秒，IO性能到了无法忍受的地步，需要尽快分析是否存储存储cache被关闭，硬盘是否出现故障、链路是否出现问题等情况。</p>
+<p>2. 数据库AWR报告方式</p>
+<p>下图的Av Rd(MS)表示单次读的毫秒数，即为单个IO的响应时间。可以看到，在0.01毫秒，远远低于20毫秒，IO性能非常的好！（能达到整个性能，往往是在文件系统缓存中被缓存了）</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-302" title="a8e8461cbfb715ad6811a8856927a45c" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/a8e8461cbfb715ad6811a8856927a45c.png" alt="a8e8461cbfb715ad6811a8856927a45c" width="920" height="251" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/a8e8461cbfb715ad6811a8856927a45c.png 920w, https://www.hzgome.cn/wp-content/uploads/2022/09/a8e8461cbfb715ad6811a8856927a45c-300x82.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/a8e8461cbfb715ad6811a8856927a45c-150x41.png 150w, https://www.hzgome.cn/wp-content/uploads/2022/09/a8e8461cbfb715ad6811a8856927a45c-768x210.png 768w" sizes="(max-width: 920px) 100vw, 920px"></p>
+<p>下图的Av Rd(MS)表示单次IO读的毫秒数，即为单个IO的响应时间。可以看到，大部分数据文件的IO响应时间超过40毫秒，远远大于20毫秒，IO性能不理想，在对存储进行扩容或者升级前，应该先好好分析IO是否是无效IO,是否可以消除无效IO！通过SQL优化消除无效IO，可以有效保护存储等硬件的投资，满足未来多年的业务发展，而不是盲目扩容。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-303" title="27eaf39b7c99702e6374d47ed747c3a4" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/27eaf39b7c99702e6374d47ed747c3a4.png" alt="27eaf39b7c99702e6374d47ed747c3a4" width="708" height="296" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/27eaf39b7c99702e6374d47ed747c3a4.png 708w, https://www.hzgome.cn/wp-content/uploads/2022/09/27eaf39b7c99702e6374d47ed747c3a4-300x125.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/27eaf39b7c99702e6374d47ed747c3a4-150x63.png 150w" sizes="(max-width: 708px) 100vw, 708px"></p>
+<p>带刀侍卫——处理IO问题必须掌握的一个ORACLE工具</p>
+<p>&nbsp;</p>
+<p>上述的AWR报告是怎么获得的呢？什么是AWR报告呢?容许我啰嗦一下：</p>
+<p>很多同学可能听过AWR报告，收集AWR报告的步骤是固定的，很简单，步骤如下：</p>
+<p>#su – oracle</p>
+<p>$sqlplus “/ as sysdba”</p>
+<p>SQL&gt;exec dbms_workload_repository.create_snapshot();</p>
+<p>SQL&gt;@?/rdbms/admin/awrrpt.sql</p>
+<p>依次输入</p>
+<p>1) &nbsp;Html</p>
+<p>2) &nbsp;回车</p>
+<p>3) &nbsp;输入想要抓取的时间范围所对应的开始snap_id</p>
+<p>4) &nbsp;输入想要抓取的时间范围所对应的结束snap_id</p>
+<p>5) &nbsp;输入想要保存为报告的名称（自己选个名字即可）</p>
+<p>6) &nbsp;刷屏出报告中……</p>
+<p>通过AWR报告这个数据库内置的工具，可以清楚的了解到某个时段，数据库中到底执行了哪些SQL，产生了多少IO，消耗了多少CPU。</p>
+<p>也许有人会说，AWR报告我已经会出了，但看懂AWR报告才是关键。</p>
+<p>是的，你需要更深入地了解一些数据库知识，不妨耐心往下看。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>说难不难——用几句话来说清ORACLE数据库<br>
+ORACLE数据库，简单来说，主要就是对外提供数据存储服务，同时可以通过内置的丰富的SQL/PLSQL接口，对外提供数据检索、比对、关联等计算服务。</p>
+<p>具体一点来说，ORACLE数据库通过服务器上的一组进程（后台进程与前台进程）和内存结构，对存储上的数据进行读写和计算。</p>
+<p>知识点：</p>
+<p>ORACLE实例和ORACLE数据库的区别是什么？</p>
+<p>做SA的很多同学一直不太清楚什么是ORACLE实例，其实很简单：</p>
+<p>进程和内存结构加起来就称之为ORACLE实例即instance。因为进程和内存是随着数据库/OS重启而消失的，因此oracle实例中不恒久的存储数据。</p>
+<p>我们的用户数据，最终是存放在磁盘中的，具体来说，是存在在磁盘中的数据文件中。数据文件、控制文件、在线日志文件，这些物理上存在的文件组成了我们传统所说的ORACLE数据库。</p>
+<p>&nbsp;</p>
+<p>知识点：</p>
+<p>ORACLE是一种典型的C/S架构么？</p>
+<p>答：是的。</p>
+<p>我们知道，客户端或者应用程序是通过SQL语句和数据库交互的。</p>
+<p>当客户端或应用程序想连接到数据库执行SQL语句来完成查询和增删改数据时，ORACLE服务器上默认地，将为每一个客户端对应地创建一个专有的服务进程（在操作系统上将看到LOCAL=NO的进程）来单独的为这个客户端服务，这个专有的服务进程帮助这个客户端执行相关SQL，当执行完SQL时，这个进程也不能做别的，就只能等着客户端发起的下一条SQL。这就好比，我们去一个高级的餐厅，有一个专属的服务员为我们服务。</p>
+<p>我们接下来用一幅图来总结上述的内容，即ORACLE的简单架构：</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-304" title="7351bff6c65402cf8c717bfb4d19c96e" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/7351bff6c65402cf8c717bfb4d19c96e.png" alt="7351bff6c65402cf8c717bfb4d19c96e" width="661" height="399" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/7351bff6c65402cf8c717bfb4d19c96e.png 661w, https://www.hzgome.cn/wp-content/uploads/2022/09/7351bff6c65402cf8c717bfb4d19c96e-300x181.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/7351bff6c65402cf8c717bfb4d19c96e-150x91.png 150w" sizes="(max-width: 661px) 100vw, 661px"></p>
+<p>可以看到：</p>
+<p>每个客户端要执行SQL，只需要通过网络将SQL传到对应的服务进程，由服务进程帮忙执行即可。多个客户端则对应多个服务进程（见上图中的LOCAL=NO专属前台进程），这些服务进程我们也称之为前台进程。</p>
+<p>ORACLE包含内存结构和后台进程</p>
+<p>1.&nbsp;SGA共享内存，又可细分为</p>
+<p>1) Buffer cache,用来缓存最近访问的数据，避免出现IO。Buffer cache中的数据可能比磁盘中的数据要新，例如读进内存后再修改为新的数据。我们称只要的数据为脏数据，脏块。</p>
+<p>2) Log buffer，用一组记录来表示对数据库的修改过程，我们称之为改变向量。</p>
+<p>3) 其他如shared pool/large pool/java pool/stream pool等，不在此介绍</p>
+<p>2. ORACLE后台进程，又可细分为</p>
+<p>1) DBWR进程，由于ORACLE定期会像word那样暂存一下最近所做的修改（我们称之为检查点checkpoint触发DBWR写脏数据），就是将buffer cache中的脏数据写回磁盘中的数据文件。这个IO属于随机写。</p>
+<p>2) LGWR进程，在提交commit命令发出时，将log buffer中的修改记录以同步IO的形式写到磁盘中的在线日志文件后返回，commit才能完成，此时虽然buffer cache内存中的数据比磁盘中的数据文件中的数据要新，但是因为已经确保有一份修改过程写到了磁盘的在线日志文件，这个时候即使数据库掉电，也可以通过重新执行在线日志文件的修改记录，来保证数据不出现丢失。这在任何关系型数据库中常见的“日志先行”策略。由于lgwr进程采用追加写的方式把改变向量写到在线日志文件后面，因此LGWR的IO属于连续写。</p>
+<p>3) 其他以ora_开头的oracle后台进程，如pmon/smon/ckpt,不在此介绍</p>
+<p>知识点：</p>
+<p>LGWR进程的IO是否支持写到文件系统缓存就返回？</p>
+<p>不支持，LGWR进程的IO是透写的。如果只写到文件系统缓存（如果数据文件存放在文件系统缓存）就返回，则一旦系统crash,文件系统缓存来不及刷到磁盘，则会出现用户commit后已经提示修改成功，但由于log buffer/buffer cache中的改变最终没有落盘而出现数据丢失的情况。</p>
+<p>LGWR进程的IO是异步IO么？</p>
+<p>不是，因为要确保数据不丢失，lgwr必须等IO返回才会接着处理下一个IO写请求。</p>
+<p>&nbsp;</p>
+<p>ORACLE架构中最大的瓶颈在哪里？</p>
+<p>在ORACLE 12C之前，Lgw后台进程只有1个,由于所有进程在commit前都需要通知lgwr进程帮忙把之前在log buffer中生成的修改过程记录(改变向量)写到磁盘中。当大量进程要同时请lgwr进程帮忙写时，就出现排队的情况。在高并发的联机交易OLTP系统中，单进程的lgwr进程有可能成为一个大瓶颈，特别是在无法保证在线日志IO写性能的情况下，很容易出现排队等lgwr进程的情况。这其实也是很容易引发问题的一个点，是ORACLE一个相对脆弱的地方。</p>
+<p>知识点：</p>
+<p>为什么ORACLE那么吃内存？服务器一半左右的内存都被ORACLE吃掉了…</p>
+<p>因为IO相比内存要慢非常多，因此很多关系型数据库为了更好的性能，大量采用内存换IO的策略,ORACLE也不例外，具体来说，ORACLE利用SGA中的buffer cache来缓存最近访问的数据，从而避免再次访问时需要发生IO。Buffer cache通常会占到SGA大小的80%，即buffer cache占到服务器内存的50%*0.8=40%左右。</p>
+<p>&nbsp;</p>
+<p>案例分享（一）每秒800M IO流量<br>
+1.&nbsp;问题描述：</p>
+<p>客户反映，数据库服务器的IO量非常大，达到每秒800M，几乎将HBA的带宽打满,交易出现缓慢的情况。</p>
+<p>2. 分析过程：</p>
+<p>收集当前时段的Oracle AWR报告，找到Load Profile部分，如下图所示</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-306" title="0ff82a8e55c3319c2214796f04ecf930-1" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/0ff82a8e55c3319c2214796f04ecf930-1.png" alt="0ff82a8e55c3319c2214796f04ecf930-1" width="513" height="352" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/0ff82a8e55c3319c2214796f04ecf930-1.png 513w, https://www.hzgome.cn/wp-content/uploads/2022/09/0ff82a8e55c3319c2214796f04ecf930-1-300x206.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/0ff82a8e55c3319c2214796f04ecf930-1-150x103.png 150w" sizes="(max-width: 513px) 100vw, 513px"></p>
+<p>可以看到：</p>
+<p>每秒的物理读Physical Reads达到104，207个BLOCK，每个BLOCK的大小是8K</p>
+<p>即每秒的IO量达到104207*8K=814M！</p>
+<p>IO的流量太大了，几乎打满了HBA所支持的吞吐，影响到整体的性能是必然的！</p>
+<p>根据上述知识点，我们知道，ORACLE采用内存换IO的策略，避免出现过多IO。</p>
+<p>那么我们不妨猜一下，是否是因为buffer cache太小导致IO无法缓存呢？</p>
+<p>进一步检查AWR报告中的”Cache Sizes”部分</p>
+<p>如下图所示，buffer cache大小仅为128M！而shared pool大小为15,232M.</p>
+<p>而该服务器配置了60G的内存！</p>
+<p>我们提到，buffer cache可以设置到服务器内存的40%，即24G。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-307" title="d3029642dccc5024ac7003b8464eb133" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/d3029642dccc5024ac7003b8464eb133.png" alt="d3029642dccc5024ac7003b8464eb133" width="507" height="144" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/d3029642dccc5024ac7003b8464eb133.png 507w, https://www.hzgome.cn/wp-content/uploads/2022/09/d3029642dccc5024ac7003b8464eb133-300x85.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/d3029642dccc5024ac7003b8464eb133-150x43.png 150w" sizes="(max-width: 507px) 100vw, 507px"></p>
+<p>通过查找AWR报告中的”Buffer Pool Advisory”，如下图所示，可以看到：</p>
+<p>当buffer cache从128M设置到256M时，IO即物理读的个数将从3600万下降到1900万，就下降了一倍！</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-308" title="bea85ff93178408ddc740522c9ef34dc" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/bea85ff93178408ddc740522c9ef34dc.png" alt="bea85ff93178408ddc740522c9ef34dc" width="922" height="161" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/bea85ff93178408ddc740522c9ef34dc.png 922w, https://www.hzgome.cn/wp-content/uploads/2022/09/bea85ff93178408ddc740522c9ef34dc-300x52.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/bea85ff93178408ddc740522c9ef34dc-150x26.png 150w, https://www.hzgome.cn/wp-content/uploads/2022/09/bea85ff93178408ddc740522c9ef34dc-768x134.png 768w" sizes="(max-width: 922px) 100vw, 922px"></p>
+<p>3. 原因</p>
+<p>难道是配置失误？不是的。实际上，客户通过一个memory_target参数设置了为ORACLE数据库分配总计40G的内存。这是一种常见的做法，即交给ORACLE来动态分配在SGA和PGA之间，在SGA内部各个组件的内存大小。由于内存动态调整算法的不完善，导致过多的内存分给了PGA而SGA不够,又由于应用程序绑定变量的使用不够理想，导致shared pool不断的膨胀，一步一步地，将buffer cache压缩到了只剩128M.</p>
+<p>4. 解决方法</p>
+<p>为buffer cache设定一个基准值20G后，IO高的问题得到解决。</p>
+<p>我们首先接触了第一个IO高的案例，接下来，我们通过一个例子来进一步的学习ORACLE的工作过程，以及更多的了解ORACLE的IO特点。</p>
+<p>&nbsp;</p>
+<p>活得明白——一个例子说明ORACLE的工作过程</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-309" title="5de5209a0dfde573a6b8ee5daa74b621" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/5de5209a0dfde573a6b8ee5daa74b621.png" alt="5de5209a0dfde573a6b8ee5daa74b621" width="636" height="386" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/5de5209a0dfde573a6b8ee5daa74b621.png 636w, https://www.hzgome.cn/wp-content/uploads/2022/09/5de5209a0dfde573a6b8ee5daa74b621-300x182.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/5de5209a0dfde573a6b8ee5daa74b621-150x91.png 150w" sizes="(max-width: 636px) 100vw, 636px"></p>
+<p>当客户端或者应用程序发起一条UPDATE语句时，到底经历了哪些事情和哪些IO？</p>
+<p>&nbsp;</p>
+<p>简化后的过程如下：</p>
+<p>客户端连接到数据库后，数据库服务器上将创建一个LOCAL=NO的进程来专门为这个客户端服务</p>
+<p>1. 客户端发起update T set id=5 where id=3的SQL语句，其中表T的大小为1G，表上不存在任何索引</p>
+<p>2. 服务器上的服务进程（LOCAL=NO），将判断表T的数据BLOCK在内存中的buffer cache是否存在，如果不存在，则由服务进程发起IO，从磁盘先后将1G的数据读到内存中。具体来说，是先读取16个BLOCK即128K（一个BLOCK可以存储几十到几百条不等的记录），然后逐个判断这些BLOCK中是否存在id=3的数据。这个IO属于随机读，由LOCAL=NO前台进程来发起IO。</p>
+<p>3. 最后在内存中同时存在一个BLOCK，BLOCK中存在id=3这条满足条件的记录</p>
+<p>4. 接下来，在前台进程将id=3修改为id=5之前，需要先在log buffer中生成哪个BLOCK哪个位置从3修改为5的过程的对应记录（改变向量）</p>
+<p>5.将内存buffer cache中的id=3修改为id=5，见下图中中的步骤5</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-310" title="7abfc5a41dedc3dddfce2853ed2be2f2" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/7abfc5a41dedc3dddfce2853ed2be2f2.png" alt="7abfc5a41dedc3dddfce2853ed2be2f2" width="662" height="391" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/7abfc5a41dedc3dddfce2853ed2be2f2.png 662w, https://www.hzgome.cn/wp-content/uploads/2022/09/7abfc5a41dedc3dddfce2853ed2be2f2-300x177.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/7abfc5a41dedc3dddfce2853ed2be2f2-150x89.png 150w" sizes="(max-width: 662px) 100vw, 662px"></p>
+<p>6. 客户端发起commit</p>
+<p>7. 因为一旦commit,则表示数据持久化，即表示将不会随着数据库crash/os 重启而丢失，因此，此时lgwr进程需要将log buffer中id=3修改为id=5的记录写到磁盘中的在线日志文件。这个IO只能是同步IO（非异步IO），等IO确认写到磁盘后，步骤6的commit完成，返回客户端的结果为修改成功。此时虽然buffer cache内存中的数据(id=5)比磁盘中的数据文件中的数据(id=3)要新，但是因为已经确保有一份修改过程(id=3修改为id=5)写到了磁盘的在线日志文件，这个时候即可数据库掉电，也可以通过重演在线日志文件的修改记录(id=3修改为id=5)，来保证数据最终被修改为5（宕机前的状态），即保证了数据不会出现丢失。</p>
+<p>8. 当发生checkpoint等场景时，DBWR进程将内存buffer cache中的脏数据(内存比磁盘数据要新)写到磁盘中的数据文件，这个过程是异步的。</p>
+<p>知识点：</p>
+<p>ORACLE为什么不把buffer cache中的脏数据也实时地在commit提交时刷到磁盘中？</p>
+<p>Lgw进程将log buffer中的修改记录（改变向量）写到磁盘中的在线日志文件，是采用追加写到在线日志文件后面，因此LGWR的IO属于连续写。</p>
+<p>而内存中的数据刷到磁盘中，属于随机写(每个客户端每次可能改不同物理位置的记录)，随机写的性能显然不如连续写的性能好，因此ORACLE允许脏数据的存在，而不是实时地在commit提交时将脏数据刷到磁盘中，采用异步的方式往下写即可，因为lgwr的连续写已经保证了数据不会出现丢失。</p>
+<p>&nbsp;</p>
+<p>案例分享（二）压测TPS上不去<br>
+1.问题描述：</p>
+<p>客户新上的一个关键业务系统，在做上线前的压力测试时，应用的并发无法达到上线前的并发指标和响应时间指标要求。压测时TPS的曲线很不稳定，如下所示：</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-311" title="b603c6d39c169872c04a36f2bff41777" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/b603c6d39c169872c04a36f2bff41777.png" alt="b603c6d39c169872c04a36f2bff41777" width="621" height="183" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777.png 621w, https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777-300x88.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777-150x44.png 150w" sizes="(max-width: 621px) 100vw, 621px"></p>
+<p>2. 分析过程：</p>
+<p>从上述知识点可以知道：</p>
+<p>ORACLE中LGWR进程只有一个，由于所有进程在commit前都需要通知lgwr进程帮忙把之前在log buffer中生成的修改过程记录(改变向量)写到磁盘中。</p>
+<p>当大量进程要同时请lgwr进程帮忙写时，就出现排队的情况。</p>
+<p>在高并发的联机交易OLTP系统中，单进程的lgwr进程有可能成为一个大瓶颈，特别是在无法在线日志IO写性能出现问题的情况下。</p>
+<p>因此，我们需要检查lgwr进程的状态。</p>
+<p>通过gv$session观察RAC两个节点lgwr进程写日志的情况，结果如下图所示：</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-312" title="45e0651ca61c265561f85635d6af4163" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/45e0651ca61c265561f85635d6af4163.png" alt="45e0651ca61c265561f85635d6af4163" width="884" height="335" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/45e0651ca61c265561f85635d6af4163.png 884w, https://www.hzgome.cn/wp-content/uploads/2022/09/45e0651ca61c265561f85635d6af4163-300x114.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/45e0651ca61c265561f85635d6af4163-150x57.png 150w, https://www.hzgome.cn/wp-content/uploads/2022/09/45e0651ca61c265561f85635d6af4163-768x291.png 768w" sizes="(max-width: 884px) 100vw, 884px"></p>
+<p>可以看到：</p>
+<p>RAC(数据库集群)两个节点中，只有1个节点出现log file parallel write的等待，该等待表示lgwr进程正在对磁盘的在线日志文件进行写操作。</p>
+<p>在state是waiting的情况下，节点1 log file parallel等待的seq#都是35693，但是seconds_in_wait达到了21秒。简单来说，就是lgwr进程写一个IO需要21秒！</p>
+<p>这意味着，压测时所有并发进程必须要发生等待，等lgwr进程完成这个的IO，才可以继续通知LGWR进程帮忙刷log buffer的改变向量，因此从压测的TPS曲线来看，就是不稳定，出现了大幅衰减。</p>
+<p>至此，我们可以肯定，IO子系统有问题。需要重点排查IO路径下的光纤线、SAN交换机、存储的报错和性能情况。</p>
+<p>考虑到客户那边管存储的团队/部门可能不承认数据库的IO慢的证据，同时为了让对方增加排查力度，远邦让客户发出以下命令，查看多路径软件的IO情况，结果如下图所示：</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-313" title="a18640afe8f9871eed75878fd9708af6" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/a18640afe8f9871eed75878fd9708af6.png" alt="a18640afe8f9871eed75878fd9708af6" width="623" height="248" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/a18640afe8f9871eed75878fd9708af6.png 623w, https://www.hzgome.cn/wp-content/uploads/2022/09/a18640afe8f9871eed75878fd9708af6-300x119.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/a18640afe8f9871eed75878fd9708af6-150x60.png 150w" sizes="(max-width: 623px) 100vw, 623px"></p>
+<p>节点1上出现明显的IO ERROR，并且在持续增加！</p>
+<p>继续检查节点2，发现节点2上没有任何IO ERROR！</p>
+<p>这个与gv$session仅有一个进程在等log file parallel write写完是完全吻合的。</p>
+<p>3. 原因</p>
+<p>在铁的证据面前，客户的存储团队没有再挣扎，而是开始认认真真逐个在排查，最终在更换了光纤线后问题得到圆满解决。以下是更换光纤线后再次压测的等待事件！</p>
+<p>4. 问题得到解决</p>
+<p>压测的TPS曲线从原来的波浪形</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-314" title="b603c6d39c169872c04a36f2bff41777-1" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/b603c6d39c169872c04a36f2bff41777-1.png" alt="b603c6d39c169872c04a36f2bff41777-1" width="621" height="183" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777-1.png 621w, https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777-1-300x88.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/b603c6d39c169872c04a36f2bff41777-1-150x44.png 150w" sizes="(max-width: 621px) 100vw, 621px"></p>
+<p>变成了如下的良好曲线</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-315" title="7f4d29a05c83332591b54247f4be1901" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/7f4d29a05c83332591b54247f4be1901.png" alt="7f4d29a05c83332591b54247f4be1901" width="618" height="160" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/7f4d29a05c83332591b54247f4be1901.png 618w, https://www.hzgome.cn/wp-content/uploads/2022/09/7f4d29a05c83332591b54247f4be1901-300x78.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/7f4d29a05c83332591b54247f4be1901-150x39.png 150w" sizes="(max-width: 618px) 100vw, 618px"></p>
+<p>&nbsp;</p>
+<p>牢记于心——一幅图来总结ORACLE的IO特点<span class="wbspy-placeholder-tip" style="position: absolute; top: 50%; left: 0; width: 100%; text-align: center; line-height: 20px; font-size: 16px; margin-top: -10px;">mgSpider 采集中…</span></p>
+<p>下图显示了数据库关键IO的特点</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-317" title="5ef554c126e187f869c907e8c43d0540-1" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/5ef554c126e187f869c907e8c43d0540-1.png" alt="5ef554c126e187f869c907e8c43d0540-1" width="675" height="394" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-1.png 675w, https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-1-300x175.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-1-150x88.png 150w" sizes="(max-width: 675px) 100vw, 675px"></p>
+<p>知识点：</p>
+<p>1. 读数据由前台进程各自来完成，IO的特点是随机读，将数据读取到内存中再进行操作</p>
+<p>2. DBWR进程的IO特点是随机写，DBWR进程支持多个进程同时往下刷数据，ORACLE为了避免在某一个时间点大量往下写脏块而导致磁盘压力过大，会采用异步地、慢慢地方式来刷脏块，减少IO压力，但当发出checkpoint和archive log current/all命令时，将激活大量DBWR进程全力往下刷脏块，可能对IO造成较大压力而影响整体性能，影响LGWR进程的写性能和响应时间。</p>
+<p>3. Lgwr进程是连续写，有条件的情况下尽量为Redo分配单独的RAID组，物理上和其他文件分开。</p>
+<p>&nbsp;</p>
+<p>案例分享（三）并发大时性能下降严重<br>
+1.问题描述：</p>
+<p>收到客户的邮件，原来客户在进行X86和小机的性能对比测试时出现以下问题：</p>
+<p>一个高端pc server，内存32G，cpu是32核</p>
+<p>pc server上测试8个语句并行，小机下降不明显，但在此pc server上却下降明显。</p>
+<p>执行时间由1分多，降到7分钟。小机上始终是2分钟。</p>
+<p>附件是AWR报告，请分析原因。</p>
+<p>2. 分析过程：</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-318" title="0a17a22ae3a8744410ddfe0174760582" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/0a17a22ae3a8744410ddfe0174760582.png" alt="0a17a22ae3a8744410ddfe0174760582" width="640" height="246" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/0a17a22ae3a8744410ddfe0174760582.png 640w, https://www.hzgome.cn/wp-content/uploads/2022/09/0a17a22ae3a8744410ddfe0174760582-300x115.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/0a17a22ae3a8744410ddfe0174760582-150x58.png 150w" sizes="(max-width: 640px) 100vw, 640px"></p>
+<p>8个并行测试的情况下，逻辑读=物理读， 逻辑读表示操作内存中的BLOCK的个数，通过物理读（IO）读进内存后必然发生逻辑读。 这说明ORACLE根本没能把数据缓存到共享内存buffer cache，以便供其他进程复用。 从AWR报告中的等待事件可以看到，排在第一位的是direct path read,这是一个IO事件 即上面说的，绕开BUFFER CACHE，直接读到PGA私有内存（非共享内存）中时,单次IO的时间达到了42毫秒，太大，说明磁盘IO竞争严重，性能不佳。 但这个是原因还是结果呢？我们不妨往下看。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-319" title="b76ba47bf0a36cbd74c9850fcb0cf715" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/b76ba47bf0a36cbd74c9850fcb0cf715.png" alt="b76ba47bf0a36cbd74c9850fcb0cf715" width="548" height="214" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/b76ba47bf0a36cbd74c9850fcb0cf715.png 548w, https://www.hzgome.cn/wp-content/uploads/2022/09/b76ba47bf0a36cbd74c9850fcb0cf715-300x117.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/b76ba47bf0a36cbd74c9850fcb0cf715-150x59.png 150w" sizes="(max-width: 548px) 100vw, 548px"></p>
+<p>如下图所示，不再是由一个进程将数据读取到buffer cache,其他人直接复用内存中的数据，从而降低了对IO的请求次数，降低了磁盘的繁忙程度。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-320" title="5ef554c126e187f869c907e8c43d0540-2" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/5ef554c126e187f869c907e8c43d0540-2.png" alt="5ef554c126e187f869c907e8c43d0540-2" width="675" height="394" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-2.png 675w, https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-2-300x175.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/5ef554c126e187f869c907e8c43d0540-2-150x88.png 150w" sizes="(max-width: 675px) 100vw, 675px"></p>
+<p>而是每个进程各自读取到自己的私有内存PGA中，每个进程执行同一条SQL都需要各自读取各自的，显然大量进程同时反复读取同一片数据，势必造成磁盘的繁忙和IO的性能下降。这就是从AWR报告中得到的分析结论。如下图所示。</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-321" title="04db2e60ecac85f8b5bed51cd1567b3c" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/04db2e60ecac85f8b5bed51cd1567b3c.png" alt="04db2e60ecac85f8b5bed51cd1567b3c" width="661" height="401" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/04db2e60ecac85f8b5bed51cd1567b3c.png 661w, https://www.hzgome.cn/wp-content/uploads/2022/09/04db2e60ecac85f8b5bed51cd1567b3c-300x182.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/04db2e60ecac85f8b5bed51cd1567b3c-150x91.png 150w" sizes="(max-width: 661px) 100vw, 661px"></p>
+<p>那么为什么不是一个人读取到共享内存，其他人坐享其成就好了呢？</p>
+<p>这是11G的新特性引起的。11g下当优化器判断需要较多物理IO的时候，那么就绕开BUFFER CACHE，直接读到PGA私有内存中。</p>
+<p>这个特性的初衷是：当ORACLE默认一次读16个BLOCK时，由于所需的部分BLOCK已经在buffer cache里了，不连续了，因此这16个BLOCK，很可能需要拆分为多次IO，导致原来的一次多块读变为了多次单块读。</p>
+<p>但现实中，当并行个数多的时候，由于该特性，这个时候很容易把磁盘搞得很忙，IO性能下降严重，也就出现了执行时间从1分钟升至7分钟的情况。</p>
+<p>而原来10G下的机制是：</p>
+<p>一个会话读到内存中，其他会话坐享其成，直接读内存中的数据就可以，因此读磁盘的个数会小一些。</p>
+<p>3.问题得到解决：</p>
+<p>使用下列方法临时禁止该特性后，再次测试，问题得到解决。 alter system set event= ‘10949 trace name context forever, level 1’ scope=spfile; –重启数据库 Shutdown immediate startup alter system register; 因此不难看出，IO慢实际上是结果，而不是原因，原因在于对同一片数据反复读取，出现太多IO了。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>怎么破——什么是无效IO以及解决方法</p>
+<p>我们不放来回顾“用一个例子说明ORACLE的工作过程”这个章节，不难发现，其实那就是一个活生生无效IO的例子。</p>
+<p>客户端发起update T set id=5 where id=3的SQL语句</p>
+<p>其中，表T的大小为1G，表上不存在任何索引</p>
+<p>在执行过程中，前台进程总计读取了磁盘中的1G的数据，经由SAN交换机传输到ORACLE共享内存中，再进行过滤，最后只有1条数据满足，最终从id=3被更新为id=5。</p>
+<p>试想一下，如果这个表的大小不是1个G，而是100个G，也不是一个客户端发起对该表的更新，而是多个会话同时更新不同的记录，那么整个系统的IO将会异常繁忙。</p>
+<p>我们从字典中找一个“喜”字，如果是挨页翻，挨页对，那么势必会多做很多无用功，最简单的方式就是从偏旁部首或者拼音来检索，就可以快速的找到“喜”字。<br>
+同样是找一个“喜”字，前者多翻了很多字典，即产生了很多无效IO。后者则很高效。</p>
+<p>因此，无效IO，说到底，是SQL语句缺少一个定位数据的高效方式，导致读取了很多数据，但是不满足又被丢弃了，导致了很多无效的IO。如果，我们对表T的id字段创建索引，那么将可以快速精确定位到id=3的数据，只需要读取几个BLOCK，整体的IO量可以控制在40K以内，不是之前的1个G。</p>
+<p>应用程序的SQL语句不够高效，是无效IO的主要原因。</p>
+<p>SQL语句的优化不是索引那么简单，索引只是众多单表访问路径的一种，SQL优化还涉及到表连接方式优化、表连接顺序优化、SQL改写等手段，后续将会陆续介绍这些优化手段。</p>
+<p>知识点：</p>
+<p>我们需要有这么一个意识：</p>
+<p>磁盘100% busy,IO响应时间很长，这很可能是因为某些不够高效的SQL语句，产生了很多无效的IO，或者导致IOPS超过了整个磁盘（阵列）所能提供的IO能力，或者是占用了无效的IO带宽导致了IO的拥堵。</p>
+<p>磁盘繁忙，IO响应时间长，可能已经是结果，而不是导致业务慢的真正原因。</p>
+<p>通过优化高IO的SQL，消除无效IO，将IO控制在合理范围内，提升整体IO性能。</p>
+<p>&nbsp;</p>
+<p>案例分享（四）不了解业务逻辑的情况下实现每秒IO 359M到每秒1M的优化<br>
+1.&nbsp;问题描述：</p>
+<p>系统的IO的IO量很大，经常性地，IO的吞吐量达到每秒300M以上。</p>
+<p>通过AWR报告，找到问题集中在一条SQL上。</p>
+<p>问题来了，我们不是做开发的，这个业务系统的业务逻辑我们也不清楚，我们可以优化么？</p>
+<p>答案是可以的，</p>
+<p>实际上我们完全在可以不懂业务逻辑的情况下完成绝大部分情况的优化，我们只要获得SQL执行的过程和明细即可快速完成优化，以下这条最占IO的SQL的优化我们在1分钟内就完成了优化。</p>
+<p>为了说明我们不需要了解业务逻辑也可以完成优化，你会发现从头到尾没有看到过任何的SQL语句 ^_^</p>
+<p>2. 优化过程：</p>
+<p>获取执行计划和执行明细(哪些步骤消耗多少时间，花费多少IO)</p>
+<p><img loading="lazy" class="alignnone size-full wp-image-322" title="49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53.png" alt="49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53" width="870" height="304" srcset="https://www.hzgome.cn/wp-content/uploads/2022/09/49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53.png 870w, https://www.hzgome.cn/wp-content/uploads/2022/09/49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53-300x105.png 300w, https://www.hzgome.cn/wp-content/uploads/2022/09/49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53-150x52.png 150w, https://www.hzgome.cn/wp-content/uploads/2022/09/49b89b27-7a8b-4b5b-a4bd-a3a5b96ead53-768x268.png 768w" sizes="(max-width: 870px) 100vw, 870px"></p>
+<p>可以看到：</p>
+<p>上述SQL的执行时间是39秒，其中id=14的步骤，占了38秒，必须优化掉该瓶颈步骤。</p>
+<p>Id=14的步骤，reads为1750K个BLOCK，即读了1750K*8K=13G,单次执行13G,38秒读完，即每秒的IO达到359M，但是最后只返回了6条记录，该步骤对A表进行全表扫描，显然，读取13G，应用了过滤条件后，最后只返回了6条记录！很多数据在读取到内存后基本都被丢弃了。缺少定位数据的高效方式，而索引是最适合定位少量数据的。</p>
+<p>3. 优化方式</p>
+<p>上图id=14的谓词部分，即红色加框部分，可以看到对A表扫描了13G，主要的过滤条件是c_captialmode和c_state这两个字段把大部分数据全滤掉了，因此创建复合索引即可，命令如下：</p>
+<p>Create index idx_1 on A(c_captialmode,c_state) tablespace &amp;tbs online;</p>
+<p>4. 优化效果</p>
+<p>优化后，每次执行，IO从13G下降至0 ；</p>
+<p>优化后，执行时间从50秒下降至50毫秒</p>
+<p>优化后，整个系统的IO从每秒359M下降到1M以下。</p>
+<p>知识点：</p>
+<p>在不了解业务逻辑的情况下，也可以快速实现对最消耗IO的SQL语句的快速优化。</p>
+<p>精通数据库知识的DBA往往比不懂数据库原理的开发和程序员更懂SQL优化。</p>
+<p>&nbsp;</p>
+<p>—————————</p>
+<p>&nbsp;</p>
+<p>由于篇幅的原因，本次分享到此。</p>
+<p>在遇到ORACLE数据库IO量高的情况时，至少有一个意识，我们的IO是无效的么？<br>
+———————————–<br>
+Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）<br>
+https://blog.51cto.com/lhrbest/3298362</p>
+        </div>
+        <section class="view-tag">
+            <div class="pull-left"><i class="fas fa-tags"></i> <a href="https://www.hzgome.cn/tag/oracle-%e6%95%b0%e6%8d%ae%e5%ba%93%e6%9c%8d%e5%8a%a1%e5%99%a8-io-%e9%ab%98" rel="tag">Oracle 数据库服务器 IO 高</a></div>
+        </section>
+                <section id="comments">
+            	<div id="respond" class="comment-respond">
+		<h4 id="reply-title" class="comment-reply-title">发表回复 <small><a rel="nofollow" id="cancel-comment-reply-link" href="https://www.hzgome.cn/298.html#respond" style="display:none;">取消回复</a></small></h4><form action="https://www.hzgome.cn/wp-comments-post.php" method="post" id="commentform" class="comment-form"><p class="comment-notes"><span id="email-notes">您的电子邮箱地址不会被公开。</span> <span class="required-field-message" aria-hidden="true">必填项已用<span class="required" aria-hidden="true">*</span>标注</span></p><div class="comment form-group has-feedback"><textarea class="form-control" id="comment" placeholder=" " name="comment" rows="5" aria-required="true" required="" onkeydown="if(event.ctrlKey){if(event.keyCode==13){document.getElementById(&#39;submit&#39;).click();return false}};"></textarea></div><div class="comment-form-author form-group has-feedback"><div class="input-group"><div class="input-group-addon"><i class="fas fa-user"></i></div><input class="form-control" placeholder="昵称" id="author" name="author" type="text" value="" "="" size="30"><span class="form-control-feedback required">*</span></div></div>
+<div class="comment-form-email form-group has-feedback"><div class="input-group"><div class="input-group-addon"><i class="fas fa-envelope"></i></div><input class="form-control" placeholder="邮箱" id="email" name="email" type="text" value="" "="" size="30"><span class="form-control-feedback required">*</span></div></div>
+<div class="comment-form-url form-group has-feedback"><div class="input-group"><div class="input-group-addon"><i class="fas fa-link"></i></div><input class="form-control" placeholder="网站" id="url" name="url" type="text" value="" "="" size="30"></div></div>
+<p class="comment-form-cookies-consent"><input id="wp-comment-cookies-consent" name="wp-comment-cookies-consent" type="checkbox" value="yes"> <label for="wp-comment-cookies-consent">在此浏览器中保存我的显示名称、邮箱地址和网站地址，以便下次评论时使用。</label></p>
+<p class="form-submit"><input name="submit" type="submit" id="submit" class="btn btn-primary" value="发表评论"> <input type="hidden" name="comment_post_ID" value="298" id="comment_post_ID">
+<input type="hidden" name="comment_parent" id="comment_parent" value="0">
+</p>		<script src="https://zz.bdstatic.com/linksubmit/push.js"></script><script language="JavaScript" type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/common.js.php"></script>
+		<script language="JavaScript" type="text/javascript">
+		//<![CDATA[
+		var hash = "b179ba666d6df59326f5a0b101d06c42";
+		var author_cookie = "comment_author_" + hash;
+		var email_cookie = "comment_author_email_" + hash;
+		var url_cookie = "comment_author_url_" + hash; 
+		var adminmail = "25601537{_}qq.com";
+		var adminurl = "https://www.hzgome.cn";
+		setCommForm();
+		//]]>
+		</script>
+	</form>	</div><!-- #respond -->
+	        </section>
+    </article>
+    <section class="col-md-8 col-md-offset-2 clearfix">
+    <div class="read">
+        <div class="read-head"><i class="fas fa-book"></i> 更多阅读</div>
+        <div class="read-list row">
+            <div class="col-md-6">
+                <ul>
+                    
+<li><a href="https://www.hzgome.cn/297.html" target="_blank">11g 设置memory_target参数</a></li>
+<li><a href="https://www.hzgome.cn/298.html" target="_blank">Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）</a></li>
+<li><a href="https://www.hzgome.cn/323.html" target="_blank">oracle truncate table recover(oracle 如何拯救误操作truncate的表)</a></li>
+<li><a href="https://www.hzgome.cn/331.html" target="_blank">Fy_Recover_Data ———— 用于数据恢复的PLSQL包</a></li>                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul>
+                                    <li><a href="https://www.hzgome.cn/137.html" title="oracle ora错误代码大全">oracle ora错误代码大全</a></li>
+                                    <li><a href="https://www.hzgome.cn/272.html" title="ORACLE里锁有以下几种模式,v$locked_object,locked_mode">ORACLE里锁有以下几种模式,v$locked_object,locked_mode</a></li>
+                                    <li><a href="https://www.hzgome.cn/30.html" title="docker安装部署">docker安装部署</a></li>
+                                    <li><a href="https://www.hzgome.cn/31.html" title="ASM的文件管理深入解析（内含开源的ASM文件挖掘研究版程序）">ASM的文件管理深入解析（内含开源的ASM文件挖掘研究版程序）</a></li>
+                                    <li><a href="https://www.hzgome.cn/28.html" title="docker 基础操作(实战一) 怎样删除容器、镜像">docker 基础操作(实战一) 怎样删除容器、镜像</a></li>
+                                    <li><a href="https://www.hzgome.cn/88.html" title="RAID技术详解:1、RAID 类型介绍">RAID技术详解:1、RAID 类型介绍</a></li>
+                                    <li><a href="https://www.hzgome.cn/55.html" title="mysql order by 中文排序">mysql order by 中文排序</a></li>
+                                    <li><a href="https://www.hzgome.cn/198.html" title="物化视图————为提升性能">物化视图————为提升性能</a></li>
+                                    <li><a href="https://www.hzgome.cn/158.html" title="SSD固态硬盘技术扫盲">SSD固态硬盘技术扫盲</a></li>
+                                    <li><a href="https://www.hzgome.cn/282.html" title="Oracle登录PDB的几种操作">Oracle登录PDB的几种操作</a></li>
+                                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="read">
+        <div class="read-head"><i class="fas fa-tags"></i> 标签云</div>
+        <div class="read-list">
+            <a href="https://www.hzgome.cn/tag/asm" class="tag-cloud-link tag-link-12 tag-link-position-1" style="color:#8d47df;font-size: 8pt;" aria-label="ASM (1个项目);">ASM</a>
+<a href="https://www.hzgome.cn/tag/docker" class="tag-cloud-link tag-link-7 tag-link-position-2" style="color:#a9410a;font-size: 12.581818181818pt;" aria-label="docker (2个项目);">docker</a>
+<a href="https://www.hzgome.cn/tag/docker%e5%ae%89%e8%a3%85%e9%83%a8%e7%bd%b2" class="tag-cloud-link tag-link-9 tag-link-position-3" style="color:#241a48;font-size: 8pt;" aria-label="docker安装部署 (1个项目);">docker安装部署</a>
+<a href="https://www.hzgome.cn/tag/docker%e5%ae%b9%e5%99%a8%e5%88%a0%e9%99%a4" class="tag-cloud-link tag-link-8 tag-link-position-4" style="color:#776213;font-size: 8pt;" aria-label="docker容器删除 (1个项目);">docker容器删除</a>
+<a href="https://www.hzgome.cn/tag/fail_timeout" class="tag-cloud-link tag-link-38 tag-link-position-5" style="color:#eee04a;font-size: 8pt;" aria-label="fail_timeout (1个项目);">fail_timeout</a>
+<a href="https://www.hzgome.cn/tag/https" class="tag-cloud-link tag-link-25 tag-link-position-6" style="color:#21101a;font-size: 8pt;" aria-label="https (1个项目);">https</a>
+<a href="https://www.hzgome.cn/tag/iops" class="tag-cloud-link tag-link-45 tag-link-position-7" style="color:#1573ef;font-size: 8pt;" aria-label="IOPS (1个项目);">IOPS</a>
+<a href="https://www.hzgome.cn/tag/iops%e8%ae%a1%e7%ae%97" class="tag-cloud-link tag-link-43 tag-link-position-8" style="color:#743c42;font-size: 8pt;" aria-label="IOPS计算 (1个项目);">IOPS计算</a>
+<a href="https://www.hzgome.cn/tag/mysql" class="tag-cloud-link tag-link-21 tag-link-position-9" style="color:#d005c8;font-size: 15.636363636364pt;" aria-label="mysql (3个项目);">mysql</a>
+<a href="https://www.hzgome.cn/tag/nginx" class="tag-cloud-link tag-link-37 tag-link-position-10" style="color:#e6c33f;font-size: 8pt;" aria-label="nginx (1个项目);">nginx</a>
+<a href="https://www.hzgome.cn/tag/ora-00600" class="tag-cloud-link tag-link-31 tag-link-position-11" style="color:#88afb9;font-size: 8pt;" aria-label="ORA-00600 (1个项目);">ORA-00600</a>
+<a href="https://www.hzgome.cn/tag/oracle-temp" class="tag-cloud-link tag-link-48 tag-link-position-12" style="color:#6eddff;font-size: 12.581818181818pt;" aria-label="oracle temp (2个项目);">oracle temp</a>
+<a href="https://www.hzgome.cn/tag/oracle%e4%b8%ad%e7%9a%84sys%e7%99%bb%e5%bd%95%e7%94%a8%e6%88%b7%e7%9a%84%e9%aa%8c%e8%af%81%e6%96%b9%e5%bc%8f" class="tag-cloud-link tag-link-4 tag-link-position-13" style="color:#13d85a;font-size: 8pt;" aria-label="oracle中的sys登录用户的验证方式 (1个项目);">oracle中的sys登录用户的验证方式</a>
+<a href="https://www.hzgome.cn/tag/oracle%e5%8e%8b%e5%8a%9b%e6%b5%8b%e8%af%95" class="tag-cloud-link tag-link-46 tag-link-position-14" style="color:#c747c5;font-size: 8pt;" aria-label="oracle压力测试 (1个项目);">oracle压力测试</a>
+<a href="https://www.hzgome.cn/tag/oracle%e5%a4%87%e4%bb%bd" class="tag-cloud-link tag-link-47 tag-link-position-15" style="color:#48bac6;font-size: 8pt;" aria-label="Oracle备份 (1个项目);">Oracle备份</a>
+<a href="https://www.hzgome.cn/tag/oracle-%e6%9d%83%e9%99%90%e8%ae%be%e7%bd%ae" class="tag-cloud-link tag-link-16 tag-link-position-16" style="color:#abdf5e;font-size: 8pt;" aria-label="Oracle 权限设置 (1个项目);">Oracle 权限设置</a>
+<a href="https://www.hzgome.cn/tag/oracle%e7%9a%84asm" class="tag-cloud-link tag-link-11 tag-link-position-17" style="color:#534409;font-size: 8pt;" aria-label="oracle的ASM (1个项目);">oracle的ASM</a>
+<a href="https://www.hzgome.cn/tag/ora%e9%94%99%e8%af%af" class="tag-cloud-link tag-link-55 tag-link-position-18" style="color:#b9d318;font-size: 8pt;" aria-label="ora错误 (1个项目);">ora错误</a>
+<a href="https://www.hzgome.cn/tag/ora%e9%94%99%e8%af%af%e5%90%88%e9%9b%86" class="tag-cloud-link tag-link-54 tag-link-position-19" style="color:#893d5d;font-size: 8pt;" aria-label="ora错误合集 (1个项目);">ora错误合集</a>
+<a href="https://www.hzgome.cn/tag/order-by" class="tag-cloud-link tag-link-22 tag-link-position-20" style="color:#6c1fc7;font-size: 8pt;" aria-label="order by (1个项目);">order by</a>
+<a href="https://www.hzgome.cn/tag/pivot%e5%87%bd%e6%95%b0" class="tag-cloud-link tag-link-14 tag-link-position-21" style="color:#a1805b;font-size: 8pt;" aria-label="pivot函数 (1个项目);">pivot函数</a>
+<a href="https://www.hzgome.cn/tag/profiler%e8%84%9a%e6%9c%ac" class="tag-cloud-link tag-link-60 tag-link-position-22" style="color:#1c2222;font-size: 12.581818181818pt;" aria-label="profiler脚本 (2个项目);">profiler脚本</a>
+<a href="https://www.hzgome.cn/tag/raid" class="tag-cloud-link tag-link-39 tag-link-position-23" style="color:#874029;font-size: 22pt;" aria-label="RAID (6个项目);">RAID</a>
+<a href="https://www.hzgome.cn/tag/raid-7" class="tag-cloud-link tag-link-44 tag-link-position-24" style="color:#58df54;font-size: 8pt;" aria-label="Raid-7 (1个项目);">Raid-7</a>
+<a href="https://www.hzgome.cn/tag/raid-%e7%b1%bb%e5%9e%8b%e4%bb%8b%e7%bb%8d" class="tag-cloud-link tag-link-40 tag-link-position-25" style="color:#1d017;font-size: 8pt;" aria-label="RAID 类型介绍 (1个项目);">RAID 类型介绍</a>
+<a href="https://www.hzgome.cn/tag/redo-log" class="tag-cloud-link tag-link-78 tag-link-position-26" style="color:#95bcda;font-size: 12.581818181818pt;" aria-label="redo log (2个项目);">redo log</a>
+<a href="https://www.hzgome.cn/tag/session_cached_cursors" class="tag-cloud-link tag-link-33 tag-link-position-27" style="color:#5d964b;font-size: 8pt;" aria-label="session_cached_cursors (1个项目);">session_cached_cursors</a>
+<a href="https://www.hzgome.cn/tag/sga" class="tag-cloud-link tag-link-97 tag-link-position-28" style="color:#d98b6b;font-size: 12.581818181818pt;" aria-label="sga (2个项目);">sga</a>
+<a href="https://www.hzgome.cn/tag/ssl%e8%af%81%e4%b9%a6" class="tag-cloud-link tag-link-26 tag-link-position-29" style="color:#2cb8e4;font-size: 8pt;" aria-label="SSL证书 (1个项目);">SSL证书</a>
+<a href="https://www.hzgome.cn/tag/sysbench%e5%b7%a5%e5%85%b7" class="tag-cloud-link tag-link-35 tag-link-position-30" style="color:#eb7c3a;font-size: 8pt;" aria-label="sysbench工具 (1个项目);">sysbench工具</a>
+<a href="https://www.hzgome.cn/tag/tomcat" class="tag-cloud-link tag-link-18 tag-link-position-31" style="color:#d9da7;font-size: 8pt;" aria-label="tomcat (1个项目);">tomcat</a>
+<a href="https://www.hzgome.cn/tag/tomcat-log" class="tag-cloud-link tag-link-19 tag-link-position-32" style="color:#f3a617;font-size: 8pt;" aria-label="tomcat log (1个项目);">tomcat log</a>
+<a href="https://www.hzgome.cn/tag/unpivot%e5%87%bd%e6%95%b0" class="tag-cloud-link tag-link-15 tag-link-position-33" style="color:#8b8511;font-size: 8pt;" aria-label="unpivot函数 (1个项目);">unpivot函数</a>
+<a href="https://www.hzgome.cn/tag/_optimizer_cost_based_transformation" class="tag-cloud-link tag-link-32 tag-link-position-34" style="color:#9d0643;font-size: 8pt;" aria-label="_optimizer_cost_based_transformation (1个项目);">_optimizer_cost_based_transformation</a>
+<a href="https://www.hzgome.cn/tag/%e4%b8%ad%e6%96%87%e6%8e%92%e5%ba%8f" class="tag-cloud-link tag-link-23 tag-link-position-35" style="color:#f2a058;font-size: 8pt;" aria-label="中文排序 (1个项目);">中文排序</a>
+<a href="https://www.hzgome.cn/tag/%e4%b8%b4%e6%97%b6%e8%a1%a8%e7%a9%ba%e9%97%b4" class="tag-cloud-link tag-link-49 tag-link-position-36" style="color:#91d187;font-size: 8pt;" aria-label="临时表空间 (1个项目);">临时表空间</a>
+<a href="https://www.hzgome.cn/tag/%e4%b8%b4%e6%97%b6%e8%a1%a8%e7%a9%ba%e9%97%b4%e4%b8%8d%e9%87%8a%e6%94%be%e7%9a%84%e5%8e%9f%e5%9b%a0" class="tag-cloud-link tag-link-50 tag-link-position-37" style="color:#490eee;font-size: 8pt;" aria-label="临时表空间不释放的原因 (1个项目);">临时表空间不释放的原因</a>
+<a href="https://www.hzgome.cn/tag/%e5%8f%af%e4%bb%a5%e5%87%8f%e5%b0%91sql%e8%a7%a3%e6%9e%90" class="tag-cloud-link tag-link-34 tag-link-position-38" style="color:#897217;font-size: 8pt;" aria-label="可以减少sql解析 (1个项目);">可以减少sql解析</a>
+<a href="https://www.hzgome.cn/tag/%e5%b7%a5%e5%85%b7%e8%bd%af%e4%bb%b6" class="tag-cloud-link tag-link-29 tag-link-position-39" style="color:#29c488;font-size: 8pt;" aria-label="工具软件 (1个项目);">工具软件</a>
+<a href="https://www.hzgome.cn/tag/%e5%bd%92%e6%a1%a3%e6%97%a5%e5%bf%97" class="tag-cloud-link tag-link-51 tag-link-position-40" style="color:#baec86;font-size: 8pt;" aria-label="归档日志 (1个项目);">归档日志</a>
+<a href="https://www.hzgome.cn/tag/%e6%96%87%e4%bb%b6%e5%90%8c%e6%ad%a5" class="tag-cloud-link tag-link-28 tag-link-position-41" style="color:#e18131;font-size: 8pt;" aria-label="文件同步 (1个项目);">文件同步</a>
+<a href="https://www.hzgome.cn/tag/%e6%9c%ba%e6%a2%b0%e7%a1%ac%e7%9b%98" class="tag-cloud-link tag-link-52 tag-link-position-42" style="color:#aaeba0;font-size: 8pt;" aria-label="机械硬盘 (1个项目);">机械硬盘</a>
+<a href="https://www.hzgome.cn/tag/%e7%a3%81%e7%9b%98%e5%af%bb%e5%9d%80" class="tag-cloud-link tag-link-41 tag-link-position-43" style="color:#d5832f;font-size: 8pt;" aria-label="磁盘寻址 (1个项目);">磁盘寻址</a>
+<a href="https://www.hzgome.cn/tag/%e8%ae%a1%e7%ae%97%e7%a3%81%e7%9b%98%e6%80%a7%e8%83%bd" class="tag-cloud-link tag-link-42 tag-link-position-44" style="color:#812e65;font-size: 8pt;" aria-label="计算磁盘性能 (1个项目);">计算磁盘性能</a>
+<a href="https://www.hzgome.cn/tag/%e9%ab%98%e5%8e%9f%e5%8f%8d%e5%ba%94" class="tag-cloud-link tag-link-53 tag-link-position-45" style="color:#2aff9a;font-size: 8pt;" aria-label="高原反应 (1个项目);">高原反应</a>        </div>
+    </div>
+    </section>
+</div>
+<!--modal-->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content single-dashang">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>×</span></button>
+                <h4 class="modal-title" id="myModalLabel"><i class="fas fa-gift"></i> 赞赏支持</h4>
+            </div>
+            <div class="modal-body text-center">
+                <p><img src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/AliPay.png"><img src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/WeixinPay.png"></p>
+                <p>扫描二维码，输入您要赞赏的金额</p>
+                <p>赞赏不用多，心意到了即可</p>
+            </div>
+        </div>
+    </div>
+</div>
+<!--modal-->
+<!--cos-html-cache-safe-tag--><div class="footer_search visible-xs visible-sm">
+    <form id="searchform" action="https://www.hzgome.cn/">
+        <div class="input-group">
+            <input type="search" class="form-control" placeholder="搜索…" value="" name="s">
+            <span class="input-group-btn"><button class="btn btn-default" type="submit"><i class="fas fa-search"></i></button></span>
+        </div>
+    </form>
+</div>
+<footer id="footer">
+    <div class="copyright">
+        <p><i class="far fa-copyright"></i> 2008-2022 <b>初见博客   All Rights Reserved.  |</b>  <a target="blank" href="https://beian.miit.gov.cn/">浙ICP备09072553号-1</a></p>
+        <p></p>
+    </div>
+    <div style="display:none;">代码在页面底部，统计标识不会显示，但不影响统计效果</div>
+</footer>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/jquery.min.js.下載"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/bootstrap.min.js.下載"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/skel.min.js.下載"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/util.min.js.下載"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/nav.js.下載"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/comment-reply.min.js.下載" id="comment-reply-js"></script>
+<script type="text/javascript" src="./Oracle 数据库服务器 IO 高的分析方案（理论讲解+案例分享）_files/highlight.pack.js.下載" id="pure-highlightjs-pack-js"></script>
+<script>
+$(function() {
+    $('[data-toggle="tooltip"]').tooltip()
+});
+</script>
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'https://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<div id="titleBar"><a href="https://www.hzgome.cn/298.html#header" class="toggle"></a><span class="title">初见博客</span></div></body></html>
